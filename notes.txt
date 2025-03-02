@@ -1,0 +1,1 @@
+docker compose up - d --> inicjalizacja plików dockera
