@@ -1,0 +1,9 @@
+<?php
+session_start();
+
+// Sprawdzenie, czy użytkownik jest zalogowany
+if (!isset($_SESSION['user_id'])) {
+    // Jeśli nie – przekierowanie do ekranu logowania
+    header('Location: views/login.php');
+    exit();
+}

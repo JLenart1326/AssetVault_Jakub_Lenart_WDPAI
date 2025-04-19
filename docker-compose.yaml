@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   web:
     build:
@@ -8,31 +6,35 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - .:/app/
+      - ./public:/var/www/html
     links:
       - php
     networks:
       - pg-network
-  
+
   db:
-    build:
-      context: .
-      dockerfile: docker/db/Dockerfile
+    image: postgres:15
     ports:
       - "5433:5432"
+    environment:
+      POSTGRES_USER: assetuser
+      POSTGRES_PASSWORD: assetpass
+      POSTGRES_DB: assetvault
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     networks:
       - pg-network
-  
+
   php:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
     volumes:
-      - .:/app
+      - ./public:/var/www/html
     networks:
       - pg-network
-  
-  pgadmin:
+
+  pgadmin-wdpai:
     image: dpage/pgadmin4:latest
     container_name: pg-admin2
     environment:
@@ -42,9 +44,10 @@ services:
       - "5050:80"
     networks:
       - pg-network
-  
+
 networks:
   pg-network:
 
 volumes:
-  pg-data:
+  pgdata:
+
