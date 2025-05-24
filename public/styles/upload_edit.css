@@ -1,0 +1,235 @@
+body {
+    background-color: #0f172a;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.upload-wrapper {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.error-list {
+    color: red;
+    list-style: none;
+    padding: 0;
+}
+
+.success-msg {
+    color: green;
+    text-align: center;
+}
+
+.upload-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.upload-form input[type="text"],
+.upload-form textarea,
+.upload-form select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.asset-name {
+    text-align: center;
+    color: rgb(90, 90, 90)
+}
+
+.upload-button {
+    background-color: #0e1628;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-block;
+    text-align: center;
+}
+.upload-button:hover {
+    background-color: #1b2336;
+}
+
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-top: 15px;
+    gap: 10px; /* Odstęp między checkboxem a napisem */
+    font-weight: 500;
+    font-size: 16px;
+}
+.checkbox-wrapper label{
+    margin-top: 0;
+}
+.checkbox-wrapper input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0e1628; /* Daje ciemnoniebieski jak przycisk Upload */
+}
+
+
+label {
+    margin-top: 20px;
+    font-weight: bold;
+    display: block;
+}
+
+input[type="text"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    text-align: center;
+    padding: 30px;
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+
+.drop-zone.dragover {
+    background-color: #eef2f5;
+}
+
+.upload-btn {
+    background-color: #0f172a;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-top: 10px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.upload-btn input {
+    display: none;
+}
+
+.max-size {
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+}
+
+.add-showcase-wrapper {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.add-showcase-sub-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.add-showcase-btn {
+    margin-left: auto;
+}
+
+small {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+}
+
+.button-row {
+    display: flex;
+    margin-top: 30px;
+    gap: 10px;
+}
+
+.upload-main-btn,
+.cancel-upload-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.upload-main-btn {
+    background-color: #0f172a;
+    color: white;
+}
+
+.cancel-upload-btn {
+    background-color: #646c77;
+    color: white;
+}
+
+@media (max-width: 981px) {
+    body {
+        background-color: white;
+        padding: 0px;
+    }
+
+    label {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .drop-zone {
+        border: none;
+        text-align: left;
+        padding: 0px;
+        margin-bottom: 0px;
+        text-align: center;
+        flex-direction: row;
+    }
+
+    .drop-zone-p {
+        display: none;
+    }
+
+    .upload-btn {
+        background-color: #0f172a;
+        color: white;
+        border-radius: 6px;
+        display: inline-block;
+    }
+    
+    .upload-wrapper {
+        max-width: 100%; /* pełna szerokość */
+        margin: 0;
+        padding: 30px 20px; /* dodajemy ładny margines wewnętrzny */
+        border-radius: 0; /* usuwamy zaokrąglenie rogów żeby ładnie pasowało do pełnej szerokości */
+    }
+}
+

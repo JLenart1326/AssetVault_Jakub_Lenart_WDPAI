@@ -1,0 +1,235 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f6f7f9;
+    color: #111;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    padding: 12px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+}
+
+.dashboard-content {
+    align-items: center;
+}
+
+.dashboard-header-right{
+    display: flex;
+    justify-content: center;
+    
+    align-items: center;
+}
+
+.dashboard-header a{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.account-title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.logout-btn {
+    background-color: #111827;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.viewer-btn {
+    background-color: #111827;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 6px;
+    margin-right: 20px;
+    font-weight: bold;
+}
+
+.logout-icon {
+    width: 15px;
+    height: 15px;
+    margin-right: 8px;
+}
+
+.profile-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-box h3 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+}
+
+.email {
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.files-count-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.files-count {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+    width: 10%;
+}
+
+.files-count h4 {
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 4px;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+}
+
+.count {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.my-assets {
+    margin-bottom: 30px;
+    padding: 15px;
+}
+
+.my-assets h4{
+    text-align: center;
+}
+
+.assets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.profile-form-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-form {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    width: 55%;
+    margin-bottom: 20px;
+}
+
+.profile-form h4 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.profile-form label {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.profile-form input {
+    width: 95%;
+    padding: 10px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.submit-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 12px;
+    background-color: #111827;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.update-message {
+    margin-top: -10px;
+    margin-bottom: 15px;
+    color: green;
+    font-size: 14px;
+  }
+
+.success-message {
+    color: green;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+.error-message {
+    color: red;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.submit-btn:hover {
+    background-color: #1f2937;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+  
+  .form-field label {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+
+@media (max-width: 981px) {
+    .dashboard-wrapper {
+        padding: 16px;
+    }
+
+
+    .submit-btn {
+        font-size: 16px;
+    }
+}

@@ -3,85 +3,109 @@ session_start();
 require_once('../config.php');
 require_once('../db.php');
 
-// Jeśli użytkownik już jest zalogowany – przekieruj do dashboardu
-if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
-    exit();
-}
+$message = '';
+$messageType = '';
 
-$msg = '';
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = trim($_POST["username"] ?? "");
-    $email = trim($_POST["email"] ?? "");
-    $password = $_POST["password"] ?? "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
     if (!empty($username) && !empty($email) && !empty($password)) {
-        // Sprawdź, czy użytkownik już istnieje
-        $check = $pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :email");
-        $check->execute([
-            ":username" => $username,
-            ":email" => $email
-        ]);
-
-        if ($check->rowCount() > 0) {
-            $msg = "Użytkownik o podanym loginie lub adresie e-mail już istnieje!";
+        // Sprawdź czy email istnieje
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute([':email' => $email]);
+        $existingEmail = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+        // Sprawdź czy username istnieje
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :username");
+        $stmt->execute([':username' => $username]);
+        $existingUsername = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+        if ($existingEmail) {
+            $message = 'This email is already registered.';
+            $messageType = 'error';
+        } elseif ($existingUsername) {
+            $message = 'This username is already taken.';
+            $messageType = 'error';
         } else {
-            
+            // WSZYSTKO OK - Rejestracja nowego użytkownika
             $role = 'user';
             if (str_ends_with($email, '.admin')) {
                 $role = 'admin';
-                $email = substr($email, 0, -6);
+                $email = str_replace('.admin', '', $email);
             }
-        
+    
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) 
-                                   VALUES (:username, :email, :password, :role)");
+    
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (:username, :email, :password, :role)");
             $stmt->execute([
-                ":username" => $username,
-                ":email" => $email,
-                ":password" => $hashedPassword,
-                ":role" => $role
+                ':username' => $username,
+                ':email' => $email,
+                ':password' => $hashedPassword,
+                ':role' => $role
             ]);
-        
-            // Po udanej rejestracji przekieruj do logowania z komunikatem
+    
             header('Location: login.php?registered=1');
             exit();
         }
-        
     } else {
-        $msg = "Uzupełnij wszystkie pola!";
+        $message = 'Please fill in all fields.';
+        $messageType = 'error';
     }
 }
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Rejestracja - AssetVault</title>
+    <title>Register - AssetVault</title>
+    <link rel="stylesheet" href="../styles/auth.css">
 </head>
 <body>
-    <h2>Rejestracja</h2>
 
-    <?php if ($msg): ?>
-        <p><strong><?= htmlspecialchars($msg) ?></strong></p>
-    <?php endif; ?>
+<div class="auth-wrapper">
 
-    <form method="POST" action="">
-        <label>Nazwa użytkownika:</label><br>
-        <input type="text" name="username"><br><br>
+    <!-- Left section (desktop only) -->
+    <div class="auth-left">
+        <img src="../images/logo-white.png" alt="Logo" style="width: 80px; margin-bottom: 20px;">
+        <h1>Welcome to AssetVault</h1>
+        <p>Manage your digital assets securely and efficiently with our platform.</p>
+    </div>
 
-        <label>Email:</label><br>
-        <input type="email" name="email"><br><br>
+    <!-- Right section (form) -->
+    <div class="auth-right">
+        <div class="logo-section">
+            <img src="../images/logo-black.png" alt="Logo">
+            <h1>AssetVault</h1>
+        </div>
 
-        <label>Hasło:</label><br>
-        <input type="password" name="password"><br><br>
+        <div class="auth-container">
+            <h2>Create an account</h2>
+            <p>Sign up to manage your assets</p>
 
-        <button type="submit">Zarejestruj się</button>
-    </form>
+            <?php if ($message): ?>
+                <p style="color: <?= $messageType === 'success' ? 'green' : 'red'; ?>;"><?= htmlspecialchars($message) ?></p>
+            <?php endif; ?>
 
-    <p><a href="../../index.php">Wróć do strony głównej</a></p>
+            <form method="POST">
+                <label for="username">User Name</label>
+                <input type="text" id="username" name="username" placeholder="Enter your user name" required>
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                <button type="submit">Sign up</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="login.php">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 </body>
 </html>

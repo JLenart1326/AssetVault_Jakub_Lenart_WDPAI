@@ -6,6 +6,8 @@ require_once('../db.php');
 $msg = "";
 $errors = [];
 
+$fromPage = isset($_GET['from']) ? $_GET['from'] : 'dashboard';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -15,11 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $file = $_FILES['asset_file'] ?? null;
     $thumbnails = $_FILES['thumbnails'] ?? null;
 
-    // Walidacja wymaganych pól
-    if (empty($name)) $errors[] = "Pole 'Nazwa pliku' jest wymagane.";
-    if (empty($description)) $errors[] = "Pole 'Opis' jest wymagane.";
-    if (empty($type)) $errors[] = "Pole 'Typ pliku' jest wymagane.";
-    if (!$file || $file['error'] !== UPLOAD_ERR_OK) $errors[] = "Główny plik jest wymagany.";
+    if (empty($name)) $errors[] = "Field 'Asset Name' is required.";
+    if (empty($description)) $errors[] = "Field 'Description' is required.";
+    if (empty($type)) $errors[] = "Field 'Type' is required.";
+    if (!$file || $file['error'] !== UPLOAD_ERR_OK) $errors[] = "Main file is required.";
 
     if (empty($errors)) {
         $originalName = basename($file['name']);
@@ -62,102 +63,174 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $msg = "<span style='color: green;'>Plik został przesłany pomyślnie!</span>";
+                header('Location: ' . ($fromPage === 'assets' ? 'assets.php' : 'dashboard.php'));
+                exit();
             } else {
-                $errors[] = "Błąd podczas zapisywania pliku na serwerze.";
+                $errors[] = "Error saving file.";
             }
         } else {
-            $errors[] = "Nieobsługiwane rozszerzenie pliku.";
+            $errors[] = "Unsupported file extension.";
         }
     }
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dodaj Asset - AssetVault</title>
+    <title>Upload Asset - AssetVault</title>
+    <link rel="stylesheet" href="../styles/upload_edit.css">
 </head>
 <body>
-    <h2>Dodaj nowy asset</h2>
+<div class="upload-wrapper">
+    <h2>Upload Asset</h2>
 
     <?php if (!empty($errors)): ?>
-        <ul style="color: red;">
+        <ul class="error-list">
             <?php foreach ($errors as $error): ?>
                 <li><?= htmlspecialchars($error) ?></li>
             <?php endforeach; ?>
         </ul>
     <?php elseif (!empty($msg)): ?>
-        <p><strong><?= $msg ?></strong></p>
+        <p class="success-msg"><?= $msg ?></p>
     <?php endif; ?>
 
-    <form method="POST" enctype="multipart/form-data">
-        <label>Nazwa pliku:<br>
+    <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+        <div class="drop-zone" id="dropZone">
+            <p class="drop-zone-p">Drag and drop your file here</p>
+            <p class="drop-zone-p">or</p>
+            <label class="upload-btn">
+                Browse Files
+                <input type="file" name="asset_file" id="assetFileInput" required hidden>
+            </label>
+            <p class="max-size">Maximum file size: 1GB</p>
+            <div id="fileNameDisplay"></div>
+        </div>
+
+        <label>Asset Name
             <input type="text" name="name" required>
-        </label><br><br>
+        </label>
 
-        <label>Opis:<br>
-            <textarea name="description" rows="4" cols="40" required></textarea>
-        </label><br><br>
+        <label>Description
+            <textarea name="description" rows="4" required></textarea>
+        </label>
 
-        <label>Typ pliku:<br>
+        <label>Type
             <select name="type" id="typeSelect" required onchange="updateAcceptedExtensions()">
-                <option value="">-- Wybierz typ --</option>
                 <option value="Model 3D">Model 3D</option>
-                <option value="Tekstura">Tekstura</option>
+                <option value="Texture">Texture</option>
                 <option value="Audio">Audio</option>
             </select>
-        </label><br><br>
+        </label>
 
-        <label>Wybierz plik główny:<br>
-            <input type="file" name="asset_file" id="assetFileInput" required onchange="checkFileSize()">
-        </label><br><br>
+        <div class="add-showcase-wrapper">
+            <div class="add-showcase-sub-wrapper">
+                <label>Add Showcase</label>
+                <small>(up to 3 images)</small>
+            </div>
+            <label class="upload-btn add-showcase-btn">
+                Browse Files
+                <input type="file" id="showcaseInput" name="thumbnails[]" multiple accept="image/png,image/jpeg" hidden>
+            </label>
+        </div>
+        <div id="showcaseFilesList" style="margin-top: 10px;"></div>
 
-        <label>Miniatury (do 3 obrazków PNG/JPG):<br>
-            <input type="file" name="thumbnails[]" multiple accept="image/png,image/jpeg">
-        </label><br><br>
-
-        <button type="submit">Prześlij asset</button>
+        <div class="button-row">
+            <button type="submit" class="upload-main-btn">Upload Asset</button>
+            <a href="<?= ($fromPage === 'assets' ? 'assets.php' : 'dashboard.php') ?>" class="cancel-upload-btn">Cancel Upload</a>
+        </div>
     </form>
-
-    <?php
-        $returnTo = $_GET['from'] ?? 'dashboard';
-    ?>
-    
-    <p><a href="<?= htmlspecialchars($returnTo) ?>.php">← Powrót do <?= $returnTo === 'dashboard' ? 'dashboardu' : 'listy assetów' ?></a></p>
+</div>
 
 <script>
-function updateAcceptedExtensions() {
-    const select = document.getElementById('typeSelect');
-    const fileInput = document.getElementById('assetFileInput');
-    const selectedType = select.value;
+const dropZone = document.getElementById('dropZone');
+const assetFileInput = document.getElementById('assetFileInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+const typeSelect = document.getElementById('typeSelect');
+const showcaseInput = document.getElementById('showcaseInput');
+const showcaseFilesList = document.getElementById('showcaseFilesList');
 
-    let accept = "";
-
+// Funkcja zwracająca akceptowane rozszerzenia
+function getAcceptedExtensions() {
+    const selectedType = typeSelect.value;
     if (selectedType === "Model 3D") {
-        accept = ".fbx,.obj,.blend";
-    } else if (selectedType === "Tekstura") {
-        accept = ".jpg,.jpeg,.png,.tga";
+        return [".fbx", ".obj", ".blend"];
+    } else if (selectedType === "Texture") {
+        return [".jpg", ".jpeg", ".png", ".tga"];
     } else if (selectedType === "Audio") {
-        accept = ".mp3,.wav,.ogg";
-    } else {
-        accept = "";
+        return [".mp3", ".wav", ".ogg"];
     }
-
-    fileInput.setAttribute("accept", accept);
+    return [];
 }
 
-function checkFileSize() {
-    const fileInput = document.getElementById('assetFileInput');
-    const file = fileInput.files[0];
+// Aktualizacja akceptowanych typów inputa
+function updateAcceptedExtensions() {
+    const acceptList = getAcceptedExtensions().join(",");
+    assetFileInput.setAttribute("accept", acceptList);
 
-    if (file && file.size > 1024 * 1024 * 1024) {
-        alert("Plik jest za duży! Maksymalny rozmiar to 1 GB.");
-        fileInput.value = "";
-    }
+    // Reset pliku i wyświetlanej nazwy
+    assetFileInput.value = "";
+    fileNameDisplay.innerText = "";
 }
+
+typeSelect.addEventListener('change', updateAcceptedExtensions);
+
+// Obsługa kliknięcia w strefę
+dropZone.addEventListener('click', (e) => {
+    if (e.target === dropZone) {
+        assetFileInput.click();
+    }
+});
+
+// Obsługa drag & drop
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+showcaseInput.addEventListener('change', function() {
+    showcaseFilesList.innerHTML = '';
+    for (const file of showcaseInput.files) {
+        const item = document.createElement('div');
+        item.textContent = file.name;
+        item.style.fontSize = '14px';
+        item.style.marginTop = '5px';
+        showcaseFilesList.appendChild(item);
+    }
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+
+    const files = e.dataTransfer.files;
+    const acceptedExtensions = getAcceptedExtensions();
+
+    if (files.length && acceptedExtensions.length) {
+        const file = files[0];
+        const fileExt = "." + file.name.split('.').pop().toLowerCase();
+
+        if (acceptedExtensions.includes(fileExt)) {
+            assetFileInput.files = files;
+            fileNameDisplay.innerText = file.name;
+        } else {
+            alert(`Unsupported file format: ${fileExt}. Allowed: ${acceptedExtensions.join(", ")}`);
+        }
+    }
+});
+
+// Obsługa zmiany pliku
+assetFileInput.addEventListener('change', () => {
+    fileNameDisplay.innerText = assetFileInput.files.length ? assetFileInput.files[0].name : '';
+});
+
+// Ustaw od razu poprawne accept przy załadowaniu strony
+updateAcceptedExtensions();
 </script>
-
 </body>
 </html>

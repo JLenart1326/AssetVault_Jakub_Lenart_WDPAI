@@ -3,58 +3,69 @@ require_once('../auth.php');
 require_once('../config.php');
 require_once('../db.php');
 
-// Obsługa filtrowania
-$filter = $_GET['type'] ?? 'All';
+$typeFilter = $_GET['type'] ?? 'All';
 
 // Pobierz wszystkie assety
-$sql = "SELECT a.*, u.username FROM assets a JOIN users u ON a.user_id = u.id";
-$params = [];
+$stmt = $pdo->prepare("SELECT * FROM assets ORDER BY created_at DESC");
+$stmt->execute();
+$assets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-if ($filter && $filter !== 'All') {
-    $sql .= " WHERE type = :type";
-    $params[':type'] = $filter;
+// Dołącz miniatury do każdego assetu
+foreach ($assets as &$asset) {
+    $stmtImg = $pdo->prepare("SELECT image_path FROM asset_images WHERE asset_id = :id ORDER BY id ASC");
+    $stmtImg->execute([':id' => $asset['id']]);
+    $asset['images'] = $stmtImg->fetchAll(PDO::FETCH_ASSOC);
 }
-
-$sql .= " ORDER BY a.created_at DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$assets = $stmt->fetchAll();
+unset($asset); // rozłącz referencję
 ?>
 
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AssetVault - Lista assetów</title>
+    <title>Assets - AssetVault</title>
+    <link rel="stylesheet" href="../styles/assets.css">
+    <link rel="stylesheet" href="../styles/asset_list.css">
 </head>
 <body>
 
-    <div class="topbar">
-        <form method="GET" style="display: inline;">
-            <label for="type">Filtruj według typu: </label>
-            <select name="type" id="type" onchange="this.form.submit()">
-                <option value="All" <?= $filter === 'All' ? 'selected' : '' ?>>Wszystkie</option>
-                <option value="Model 3D" <?= $filter === 'Model 3D' ? 'selected' : '' ?>>Model 3D</option>
-                <option value="Tekstura" <?= $filter === 'Tekstura' ? 'selected' : '' ?>>Tekstura</option>
-                <option value="Audio" <?= $filter === 'Audio' ? 'selected' : '' ?>>Audio</option>
-            </select>
-        </form>
+<header class="assets-header">
+    <div class="assets-header-left">
+        <img src="../images/logo-black.png" alt="AssetVault Logo" class="logo-icon">
+        <div class="logo">AssetVault</div>
+    </div>
+    <div class="assets-header-right">
+        <a href="upload.php?from=assets" class="upload-button"><img src="../images/upload-icon.png" class="upload-icon">Upload</a>
+        <a href="dashboard.php?from=assets">
+            <img src="../images/user.png" alt="User Icon" class="user-icon">
+        </a>
+    </div>
+</header>
 
-        <button onclick="window.location.href='upload.php?from=assets'">➕ Dodaj asset</button>
-        <button onclick="window.location.href='dashboard.php'">📋 Dashboard</button>
-        <button onclick="window.location.href='logout.php'">🚪 Wyloguj</button>
+<main class="assets-main">
+    <div class="filter-bar">
+        <a href="?type=All" class="filter-btn <?= $typeFilter === 'All' ? 'active' : '' ?>">All</a>
+        <a href="?type=Model 3D" class="filter-btn <?= $typeFilter === 'Model 3D' ? 'active' : '' ?>">3D Model</a>
+        <a href="?type=Audio" class="filter-btn <?= $typeFilter === 'Audio' ? 'active' : '' ?>">Audio</a>
+        <a href="?type=Texture" class="filter-btn <?= $typeFilter === 'Texture' ? 'active' : '' ?>">Textures</a>
     </div>
 
-    <h2>Wszystkie Assety</h2>
+    <div class="assets-grid">
+        <?php $source = 'assets'; ?>
+        <?php foreach ($assets as $asset): ?>
+            <?php if ($typeFilter === 'All' || $asset['type'] === $typeFilter): ?>
+                <?php include('partials/asset_list.php'); ?>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    </div>
+</main>
 
-    <?php if (count($assets) === 0): ?>
-        <p>Brak assetów do wyświetlenia.</p>
-    <?php endif; ?>
+<footer class="mobile-footer">
+    <a href="?type=All" class="mobile-nav-item <?= $typeFilter === 'All' ? 'active' : '' ?>"><span>All</span></a>
+    <a href="?type=Model 3D" class="mobile-nav-item <?= $typeFilter === 'Model 3D' ? 'active' : '' ?>"><span>Models</span></a>
+    <a href="?type=Audio" class="mobile-nav-item <?= $typeFilter === 'Audio' ? 'active' : '' ?>"><span>Audio</span></a>
+    <a href="?type=Texture" class="mobile-nav-item <?= $typeFilter === 'Texture' ? 'active' : '' ?>"><span>Textures</span></a>
+</footer>
 
-    <?php
-        $allAssets = $assets; // np. wynik z SELECT * FROM assets ...
-        include 'partials/asset_list.php';
-    ?>
 </body>
 </html>

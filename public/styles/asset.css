@@ -1,0 +1,266 @@
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a;
+    color: #111827;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.back-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.logo-icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 8px;
+}
+
+
+.user-icon img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.asset-container {
+    max-width: 1100px;
+    margin: 40px auto;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.asset-header {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.asset-header h1 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    margin-block-start: 0;
+    margin-block-end: 5px;
+}
+
+.asset-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.download-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #111827;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.asset-body {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.preview-img img {
+    max-width: 480px;
+    width: 100%;
+    border-radius: 10px;
+    background-color: #e5e7eb;
+}
+.asset-details-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.asset-details {
+    min-width: 260px;
+}
+
+.info-box {
+    background-color: #cacbcc;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.info-box h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    margin-block-start: 0;
+    margin-block-end: 1em;
+}
+
+.info-box p {
+    margin: 6px 0;
+    font-size: 14px;
+}
+
+.asset-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.action-btn {
+    display: inline-block;
+    background-color: #111827;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+    background-color: #1f2937;
+}
+
+.action-btn.danger {
+    background-color: #dc2626;
+}
+
+.action-btn.danger:hover {
+    background-color: #b91c1c;
+}
+
+.carousel-wrapper {
+    flex: 0 0 73%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #cacbcc;
+    gap: 16px;
+    border-radius: 10px;
+    padding: 20px 10px;
+}
+
+.carousel-content {
+    flex: 0 1 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 280px;
+}
+
+.carousel-img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 8px;
+    display: none;
+}
+
+.carousel-img.active {
+    display: block;
+}
+
+.carousel-arrow {
+    background-color: #111827;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 40px;
+    height: 40px;
+}
+
+.carousel-arrow.left {
+    margin-right: 10px;
+}
+
+.carousel-arrow.right {
+    margin-left: 10px;
+}
+
+.carousel-arrow:hover {
+    background-color: #1f2937;
+}
+
+.asset-audio {
+    margin-top: 30px;
+    text-align: left;
+}
+
+.asset-audio audio {
+    width: 100%;
+    outline: none;
+}
+
+.asset-divider {
+    border: none;
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 0;
+}
+
+
+@media (max-width: 981px) {
+    .asset-body {
+        flex-direction: column;
+    }
+
+    .download-btn {
+        position: static;
+        display: inline-block;
+        margin-top: 20px;
+    }
+
+    .asset-header h1 {
+        font-size: 20px;
+    }
+
+    .preview-img img {
+        max-width: 100%;
+    }
+
+    .info-box {
+        padding: 16px;
+    }
+}

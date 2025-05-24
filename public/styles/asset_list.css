@@ -1,0 +1,91 @@
+.asset-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.2s ease;
+}
+
+.asset-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 4px 4px 4px 4px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.asset-card:hover {
+    box-shadow: 0px 0px 0px 0px rgba(0,0,0,0.06);
+    background: rgb(173, 173, 173);
+}
+
+.asset-preview {
+    height: 160px;
+    background-color: #374151;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.asset-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+.asset-meta {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-grow: 1;
+}
+
+.asset-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 6px 0 4px 0;
+}
+
+.asset-description {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 12px;
+}
+
+.asset-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.asset-type {
+    background-color: #f3f4f6;
+    color: #111827;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.download-btn {
+    padding: 6px 14px;
+    background-color: #111827;
+    color: white;
+    font-size: 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.download-btn:hover {
+    background-color: #415066;
+}
