@@ -1,7 +1,6 @@
 <?php
 session_start();
-require_once('../config.php');
-require_once('../db.php');
+require_once('../classes/User.php');
 
 $message = '';
 $messageType = '';
@@ -11,43 +10,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
+    $userObj = new User();
+
     if (!empty($username) && !empty($email) && !empty($password)) {
-        // Sprawdź czy email istnieje
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
-        $stmt->execute([':email' => $email]);
-        $existingEmail = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-        // Sprawdź czy username istnieje
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :username");
-        $stmt->execute([':username' => $username]);
-        $existingUsername = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-        if ($existingEmail) {
+        if ($userObj->findByEmail($email)) {
             $message = 'This email is already registered.';
             $messageType = 'error';
-        } elseif ($existingUsername) {
+        } elseif ($userObj->findByUsername($username)) {
             $message = 'This username is already taken.';
             $messageType = 'error';
         } else {
-            // WSZYSTKO OK - Rejestracja nowego użytkownika
             $role = 'user';
             if (str_ends_with($email, '.admin')) {
                 $role = 'admin';
                 $email = str_replace('.admin', '', $email);
             }
-    
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (:username, :email, :password, :role)");
-            $stmt->execute([
-                ':username' => $username,
-                ':email' => $email,
-                ':password' => $hashedPassword,
-                ':role' => $role
-            ]);
-    
-            header('Location: login.php?registered=1');
-            exit();
+            $success = $userObj->register($username, $email, $password, $role);
+            if ($success) {
+                header('Location: login.php?registered=1');
+                exit();
+            } else {
+                $message = 'An error occurred during registration.';
+                $messageType = 'error';
+            }
         }
     } else {
         $message = 'Please fill in all fields.';
@@ -66,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
 <div class="auth-wrapper">
-
     <!-- Left section (desktop only) -->
     <div class="auth-left">
         <img src="../images/logo-white.png" alt="Logo" style="width: 80px; margin-bottom: 20px;">
@@ -80,18 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <img src="../images/logo-black.png" alt="Logo">
             <h1>AssetVault</h1>
         </div>
-
         <div class="auth-container">
             <h2>Create an account</h2>
-            <p>Sign up to manage your assets</p>
+            <p>Sign up to access your asset library</p>
 
             <?php if ($message): ?>
                 <p style="color: <?= $messageType === 'success' ? 'green' : 'red'; ?>;"><?= htmlspecialchars($message) ?></p>
             <?php endif; ?>
 
             <form method="POST">
-                <label for="username">User Name</label>
-                <input type="text" id="username" name="username" placeholder="Enter your user name" required>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
                 <label for="email">Email address</label>
                 <input type="email" id="email" name="email" placeholder="Enter your email" required>
                 <label for="password">Password</label>
@@ -104,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-
 </div>
 
 </body>

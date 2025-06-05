@@ -1,24 +1,14 @@
 <?php
 require_once('../auth.php');
-require_once('../config.php');
-require_once('../db.php');
+require_once __DIR__ . '/../classes/Asset.php';
 
 $typeFilter = $_GET['type'] ?? 'All';
 
-// Pobierz wszystkie assety
-$stmt = $pdo->prepare("SELECT * FROM assets ORDER BY created_at DESC");
-$stmt->execute();
-$assets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$assetService = new Asset();
 
-// Dołącz miniatury do każdego assetu
-foreach ($assets as &$asset) {
-    $stmtImg = $pdo->prepare("SELECT image_path FROM asset_images WHERE asset_id = :id ORDER BY id ASC");
-    $stmtImg->execute([':id' => $asset['id']]);
-    $asset['images'] = $stmtImg->fetchAll(PDO::FETCH_ASSOC);
-}
-unset($asset); // rozłącz referencję
+$assets = $assetService->findAllWithImages();
+
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

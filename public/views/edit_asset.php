@@ -1,125 +1,71 @@
 <?php
 require_once('../auth.php');
-require_once('../config.php');
-require_once('../db.php');
-
-if (!isset($_GET['id'])) {
-    header('Location: assets.php');
-    exit();
-}
-
-$assetId = (int)$_GET['id'];
-$stmt = $pdo->prepare("SELECT * FROM assets WHERE id = :id");
-$stmt->execute([':id' => $assetId]);
-$asset = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$asset) {
-    header('Location: assets.php');
-    exit();
-}
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../classes/Asset.php';
 
 $errors = [];
-$msg = "";
+$msg = '';
+
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    header("Location: assets.php");
+    exit();
+}
+$assetId = (int)$_GET['id'];
+
+$returnTo = (isset($_GET['from']) && in_array($_GET['from'], ['dashboard', 'assets'])) ? $_GET['from'] : 'assets';
+$returnUrl = "asset.php?id={$assetId}&from=" . htmlspecialchars($returnTo);
+
+$assetService = new Asset();
+$asset = $assetService->getById($assetId);
+
+if (!$asset) {
+    header("Location: {$returnTo}.php");
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+$isAdmin = ($_SESSION['role'] === 'admin');
+$isOwner = ($asset['user_id'] == $userId);
+
+if (!$isAdmin && !$isOwner) {
+    header("Location: {$returnUrl}");
+    exit();
+}
+
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
-    $type = trim($_POST['type'] ?? '');
-    $updateMainAsset = isset($_POST['update_main']);
-    $updateScreenshots = isset($_POST['update_screenshots']);
+    $type = trim($_POST['type'] ?? $asset['type']);
 
-    if (empty($name)) $errors[] = "Asset Name is required.";
-    if (empty($description)) $errors[] = "Description is required.";
-    if (empty($type)) $errors[] = "Type is required.";
-
-    // Walidacja plików jeśli checkboxy są zaznaczone
-    if ($updateMainAsset) {
-        if (!isset($_FILES['asset_file']) || $_FILES['asset_file']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = "You must upload a new main asset file.";
-        } else {
-            // sprawdzamy format pliku
-            $allowedMain = [];
-            if ($type == "Model 3D") $allowedMain = ['fbx', 'obj', 'blend'];
-            elseif ($type == "Texture") $allowedMain = ['jpg', 'jpeg', 'png', 'tga'];
-            elseif ($type == "Audio") $allowedMain = ['mp3', 'wav', 'ogg'];
-
-            $ext = strtolower(pathinfo($_FILES['asset_file']['name'], PATHINFO_EXTENSION));
-            if (!in_array($ext, $allowedMain)) {
-                $errors[] = "Invalid main file format.";
-            }
-        }
-    }
-
-    if ($updateScreenshots) {
-        if (!isset($_FILES['new_showcase_files']) || empty($_FILES['new_showcase_files']['name'][0])) {
-            $errors[] = "You must upload at least one showcase image.";
-        } else {
-            foreach ($_FILES['new_showcase_files']['name'] as $thumbName) {
-                $ext = strtolower(pathinfo($thumbName, PATHINFO_EXTENSION));
-                if (!in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                    $errors[] = "Only JPG/PNG images allowed for showcase.";
-                    break;
-                }
-            }
-        }
-    }
+    $updateMain = !empty($_POST['update_main']);
+    $mainFile = $updateMain ? ($_FILES['asset_file'] ?? null) : null;
     
+    $updateShowcase = !empty($_POST['update_screenshots']);
+    $thumbnails = $updateShowcase ? ($_FILES['new_showcase_files'] ?? null) : null;
+    
+    list($success, $errorArr) = $assetService->updateWithFiles(
+        $assetId,
+        $name,
+        $description,
+        $type,
+        $userId,
+        $isAdmin,
+        $updateMain,
+        $mainFile,
+        $updateShowcase,
+        $thumbnails
+    );
 
-    if (empty($errors)) {
-        $stmt = $pdo->prepare("UPDATE assets SET name = :name, description = :description, type = :type WHERE id = :id");
-        $stmt->execute([
-            ':name' => $name,
-            ':description' => $description,
-            ':type' => $type,
-            ':id' => $assetId
-        ]);
-
-        // Aktualizacja pliku głównego
-        if ($updateMainAsset) {
-            $originalName = basename($_FILES['asset_file']['name']);
-            $newFileName = uniqid() . '.' . strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-            $uploadPath = UPLOAD_DIR . $newFileName;
-            move_uploaded_file($_FILES['asset_file']['tmp_name'], '../' . $uploadPath);
-
-            $stmt = $pdo->prepare("UPDATE assets SET file_path = :file_path WHERE id = :id");
-            $stmt->execute([
-                ':file_path' => $uploadPath,
-                ':id' => $assetId
-            ]);
-        }
-
-        // Aktualizacja miniatur
-        if ($updateScreenshots) {
-            $stmt = $pdo->prepare("DELETE FROM asset_images WHERE asset_id = :id");
-            $stmt->execute([':id' => $assetId]);
-
-            if (!empty($_FILES['new_showcase_files']['name'][0])) {
-                for ($i = 0; $i < min(3, count($_FILES['new_showcase_files']['name'])); $i++) {
-                    if ($_FILES['new_showcase_files']['error'][$i] === 0) {
-                        $ext = strtolower(pathinfo($_FILES['new_showcase_files']['name'][$i], PATHINFO_EXTENSION));
-                        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                            $thumbName = uniqid('thumb_') . '.' . $ext;
-                            $thumbPath = THUMBNAIL_DIR . $thumbName;
-                            move_uploaded_file($_FILES['new_showcase_files']['tmp_name'][$i], '../' . $thumbPath);
-
-                            $stmtImg = $pdo->prepare("INSERT INTO asset_images (asset_id, image_path) VALUES (:asset_id, :image_path)");
-                            $stmtImg->execute([
-                                ':asset_id' => $assetId,
-                                ':image_path' => $thumbPath
-                            ]);
-                        }
-                    }
-                }
-            }
-        }
-
-        $msg = "Changes saved successfully!";
-        header('Location: asset.php?id=' . $assetId);
+    if ($success) {
+        header("Location: {$returnUrl}");
         exit();
+    } else {
+        $errors = $errorArr;
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <form method="POST" enctype="multipart/form-data" class="upload-form">
         <div class="checkbox-wrapper">
-            <label for="update_main">Update Main Asset</label>
+            <label for="updateMainAsset">Update Main Asset</label>
             <input type="checkbox" id="updateMainAsset" name="update_main">
         </div>
         <div id="updateMainAssetFields" style="display: none; margin-top: 15px;">
@@ -166,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </label>
 
         <label>Type
-            <select name="type" id="typeSelect" required>
+            <select name="type" id="typeSelect" required disabled data-original-type="<?= htmlspecialchars($asset['type']) ?>">
                 <option value="Model 3D" <?= $asset['type'] == 'Model 3D' ? 'selected' : '' ?>>Model 3D</option>
                 <option value="Texture" <?= $asset['type'] == 'Texture' ? 'selected' : '' ?>>Texture</option>
                 <option value="Audio" <?= $asset['type'] == 'Audio' ? 'selected' : '' ?>>Audio</option>
@@ -186,104 +132,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div id="showcaseFilesList" style="font-size: 14px; margin-top: 5px;"></div>
         </div>
 
-
         <div class="button-row">
             <button type="submit" class="upload-main-btn">Save Changes</button>
-            <a href="asset.php?id=<?= $assetId ?>&from=<?= htmlspecialchars($_GET['from'] ?? 'assets') ?>" class="cancel-upload-btn">Cancel Changes</a>
-
+            <a href="asset.php?id=<?= $assetId ?>&from=<?= htmlspecialchars($returnTo) ?>" class="cancel-upload-btn">Cancel Changes</a>
         </div>
-
     </form>
 </div>
 <script>
     const updateMainAssetCheckbox = document.getElementById('updateMainAsset');
-const updateMainAssetFields = document.getElementById('updateMainAssetFields');
-const newMainAssetFile = document.getElementById('newMainAssetFile');
-const mainAssetFileName = document.getElementById('mainAssetFileName');
-const typeSelect = document.getElementById('typeSelect');
-const updateShowcaseCheckbox = document.getElementById('update_screenshots');
-const updateShowcaseFields = document.getElementById('updateShowcaseFields');
-const newShowcaseFiles = document.getElementById('newShowcaseFiles');
-const showcaseFilesList = document.getElementById('showcaseFilesList');
+    const updateMainAssetFields = document.getElementById('updateMainAssetFields');
+    const newMainAssetFile = document.getElementById('newMainAssetFile');
+    const mainAssetFileName = document.getElementById('mainAssetFileName');
+    const typeSelect = document.getElementById('typeSelect');
+    const updateShowcaseCheckbox = document.getElementById('update_screenshots');
+    const updateShowcaseFields = document.getElementById('updateShowcaseFields');
+    const newShowcaseFiles = document.getElementById('newShowcaseFiles');
+    const showcaseFilesList = document.getElementById('showcaseFilesList');
 
-updateShowcaseCheckbox.addEventListener('change', () => {
-    if (updateShowcaseCheckbox.checked) {
-        updateShowcaseFields.style.display = 'block';
-    } else {
-        updateShowcaseFields.style.display = 'none';
-        newShowcaseFiles.value = '';
-        showcaseFilesList.innerText = '';
-    }
-});
-
-newShowcaseFiles.addEventListener('change', () => {
-    showcaseFilesList.innerHTML = '';
-    const files = Array.from(newShowcaseFiles.files);
-    files.forEach(file => {
-        const ext = "." + file.name.split('.').pop().toLowerCase();
-        if ([".jpg", ".jpeg", ".png"].includes(ext)) {
-            const item = document.createElement('div');
-            item.textContent = file.name;
-            showcaseFilesList.appendChild(item);
+    updateShowcaseCheckbox.addEventListener('change', () => {
+        if (updateShowcaseCheckbox.checked) {
+            updateShowcaseFields.style.display = 'block';
         } else {
-            alert(`Unsupported file format: ${ext}. Only JPG and PNG allowed.`);
+            updateShowcaseFields.style.display = 'none';
             newShowcaseFiles.value = '';
             showcaseFilesList.innerText = '';
         }
     });
-});
 
-function getAcceptedExtensions() {
-    const selectedType = typeSelect.value;
-    if (selectedType === "Model 3D") {
-        return [".fbx", ".obj", ".blend"];
-    } else if (selectedType === "Texture") {
-        return [".jpg", ".jpeg", ".png", ".tga"];
-    } else if (selectedType === "Audio") {
-        return [".mp3", ".wav", ".ogg"];
+    newShowcaseFiles.addEventListener('change', () => {
+        showcaseFilesList.innerHTML = '';
+        const files = Array.from(newShowcaseFiles.files);
+        files.forEach(file => {
+            const ext = "." + file.name.split('.').pop().toLowerCase();
+            if ([".jpg", ".jpeg", ".png"].includes(ext)) {
+                const item = document.createElement('div');
+                item.textContent = file.name;
+                showcaseFilesList.appendChild(item);
+            } else {
+                alert(`Unsupported file format: ${ext}. Only JPG and PNG allowed.`);
+                newShowcaseFiles.value = '';
+                showcaseFilesList.innerText = '';
+            }
+        });
+    });
+
+    function getAcceptedExtensions() {
+        const selectedType = typeSelect.value;
+        if (selectedType === "Model 3D") {
+            return [".fbx", ".obj", ".blend"];
+        } else if (selectedType === "Texture") {
+            return [".jpg", ".jpeg", ".png", ".tga"];
+        } else if (selectedType === "Audio") {
+            return [".mp3", ".wav", ".ogg"];
+        }
+        return [];
     }
-    return [];
-}
 
-updateMainAssetCheckbox.addEventListener('change', () => {
-    if (updateMainAssetCheckbox.checked) {
-        updateMainAssetFields.style.display = 'block';
-        updateNewMainAssetAccept();
-    } else {
-        updateMainAssetFields.style.display = 'none';
-        newMainAssetFile.value = '';
-        mainAssetFileName.innerText = '';
-    }
-});
-
-// Obsługa wyboru pliku
-newMainAssetFile.addEventListener('change', () => {
-    const file = newMainAssetFile.files[0];
-    if (file) {
-        const accepted = getAcceptedExtensions();
-        const fileExt = "." + file.name.split('.').pop().toLowerCase();
-        if (accepted.includes(fileExt)) {
-            mainAssetFileName.innerText = file.name;
+     updateMainAssetCheckbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        if (isChecked) {
+            typeSelect.disabled = false;
+            updateMainAssetFields.style.display = 'block';
+            updateNewMainAssetAccept();
         } else {
-            alert(`Unsupported file format: ${fileExt}. Allowed: ${accepted.join(", ")}`);
+            typeSelect.disabled = true;
+            typeSelect.value = typeSelect.dataset.originalType;
+            updateMainAssetFields.style.display = 'none';
             newMainAssetFile.value = '';
             mainAssetFileName.innerText = '';
         }
-    } else {
-        mainAssetFileName.innerText = '';
-    }
-});
+    });
+    
+    newMainAssetFile.addEventListener('change', () => {
+        const file = newMainAssetFile.files[0];
+        if (file) {
+            const accepted = getAcceptedExtensions();
+            const fileExt = "." + file.name.split('.').pop().toLowerCase();
+            if (accepted.includes(fileExt)) {
+                mainAssetFileName.innerText = file.name;
+            } else {
+                alert(`Unsupported file format: ${fileExt}. Allowed: ${accepted.join(", ")}`);
+                newMainAssetFile.value = '';
+                mainAssetFileName.innerText = '';
+            }
+        } else {
+            mainAssetFileName.innerText = '';
+        }
+    });
 
-typeSelect.addEventListener('change', () => {
-    if (updateMainAssetCheckbox.checked) {
-        updateNewMainAssetAccept();
-    }
-});
+    typeSelect.addEventListener('change', () => {
+        if (updateMainAssetCheckbox.checked) {
+            updateNewMainAssetAccept();
+        }
+    });
 
-function updateNewMainAssetAccept() {
-    const accepted = getAcceptedExtensions().join(",");
-    newMainAssetFile.setAttribute('accept', accepted);
-}
+    function updateNewMainAssetAccept() {
+        const accepted = getAcceptedExtensions().join(",");
+        newMainAssetFile.setAttribute('accept', accepted);
+    }
 </script>
 
 </body>

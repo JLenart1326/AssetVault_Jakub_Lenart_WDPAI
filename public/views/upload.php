@@ -1,7 +1,7 @@
 <?php
 require_once('../auth.php');
 require_once('../config.php');
-require_once('../db.php');
+require_once('../classes/Asset.php');
 
 $msg = "";
 $errors = [];
@@ -13,64 +13,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description'] ?? '');
     $type = trim($_POST['type'] ?? '');
     $userId = $_SESSION['user_id'];
-
     $file = $_FILES['asset_file'] ?? null;
     $thumbnails = $_FILES['thumbnails'] ?? null;
 
-    if (empty($name)) $errors[] = "Field 'Asset Name' is required.";
-    if (empty($description)) $errors[] = "Field 'Description' is required.";
-    if (empty($type)) $errors[] = "Field 'Type' is required.";
-    if (!$file || $file['error'] !== UPLOAD_ERR_OK) $errors[] = "Main file is required.";
+    $assetObj = new Asset();
 
-    if (empty($errors)) {
-        $originalName = basename($file['name']);
-        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    list($success, $errorArr) = $assetObj->uploadWithThumbnails($userId, $name, $description, $type, $file, $thumbnails);
 
-        if (in_array($extension, $allowedExtensions)) {
-            $newFileName = uniqid() . '.' . $extension;
-            $uploadPath = UPLOAD_DIR . $newFileName;
-
-            if (move_uploaded_file($file['tmp_name'], '../' . $uploadPath)) {
-                $stmt = $pdo->prepare("INSERT INTO assets (user_id, name, description, type, file_path) 
-                                       VALUES (:user_id, :name, :description, :type, :file_path)");
-                $stmt->execute([
-                    ':user_id' => $userId,
-                    ':name' => $name,
-                    ':description' => $description,
-                    ':type' => $type,
-                    ':file_path' => $uploadPath
-                ]);
-
-                $assetId = $pdo->lastInsertId();
-
-                if (!empty($thumbnails['name'][0])) {
-                    for ($i = 0; $i < min(3, count($thumbnails['name'])); $i++) {
-                        if ($thumbnails['error'][$i] === 0) {
-                            $thumbExt = strtolower(pathinfo($thumbnails['name'][$i], PATHINFO_EXTENSION));
-                            if (in_array($thumbExt, ['jpg', 'jpeg', 'png'])) {
-                                $thumbName = uniqid('thumb_') . '.' . $thumbExt;
-                                $thumbPath = THUMBNAIL_DIR . $thumbName;
-                                move_uploaded_file($thumbnails['tmp_name'][$i], '../' . $thumbPath);
-
-                                $stmtImg = $pdo->prepare("INSERT INTO asset_images (asset_id, image_path) 
-                                                          VALUES (:asset_id, :image_path)");
-                                $stmtImg->execute([
-                                    ':asset_id' => $assetId,
-                                    ':image_path' => $thumbPath
-                                ]);
-                            }
-                        }
-                    }
-                }
-
-                header('Location: ' . ($fromPage === 'assets' ? 'assets.php' : 'dashboard.php'));
-                exit();
-            } else {
-                $errors[] = "Error saving file.";
-            }
-        } else {
-            $errors[] = "Unsupported file extension.";
-        }
+    if ($success) {
+        header('Location: ' . ($fromPage === 'assets' ? 'assets.php' : 'dashboard.php'));
+        exit();
+    } else {
+        $errors = $errorArr;
     }
 }
 ?>
@@ -102,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="drop-zone-p">or</p>
             <label class="upload-btn">
                 Browse Files
-                <input type="file" name="asset_file" id="assetFileInput" required hidden>
+                <input type="file" name="asset_file" id="assetFileInput" style="display: none;">
             </label>
             <p class="max-size">Maximum file size: 1GB</p>
             <div id="fileNameDisplay"></div>
@@ -229,8 +183,23 @@ assetFileInput.addEventListener('change', () => {
     fileNameDisplay.innerText = assetFileInput.files.length ? assetFileInput.files[0].name : '';
 });
 
-// Ustaw od razu poprawne accept przy załadowaniu strony
 updateAcceptedExtensions();
+
+const uploadForm = document.getElementById('uploadForm');
+uploadForm.addEventListener('submit', function(e) {
+    let oldError = document.getElementById('mainFileErrorMsg');
+    if (oldError) oldError.remove();
+
+    if (!assetFileInput.files.length) {
+        const msg = document.createElement('div');
+        msg.id = 'mainFileErrorMsg';
+        msg.className = 'error-list';
+        msg.style.marginBottom = '10px';
+        msg.innerHTML = "<li>Main file is required.</li>";
+        uploadForm.parentNode.insertBefore(msg, uploadForm);
+        e.preventDefault();
+    }
+});
 </script>
 </body>
 </html>

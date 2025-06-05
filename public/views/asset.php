@@ -1,7 +1,6 @@
 <?php
 require_once('../auth.php');
-require_once('../config.php');
-require_once('../db.php');
+require_once('../classes/Asset.php');
 
 if (!isset($_GET['id'])) {
     header("Location: assets.php");
@@ -9,31 +8,30 @@ if (!isset($_GET['id'])) {
 }
 
 $assetId = (int)$_GET['id'];
-$stmt = $pdo->prepare("SELECT a.*, u.username FROM assets a JOIN users u ON a.user_id = u.id WHERE a.id = :id");
-$stmt->execute([':id' => $assetId]);
-$asset = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$assetObj = new Asset();
+$asset = $assetObj->getById($assetId);
 
 if (!$asset) {
     header("Location: assets.php");
     exit();
 }
 
-// Dostęp edycji/usuwania
 $userId = $_SESSION['user_id'];
 $isAdmin = $_SESSION['role'] === 'admin';
 $isOwner = $asset['user_id'] == $userId;
 
-$stmt = $pdo->prepare("SELECT * FROM asset_images WHERE asset_id = :id");
-$stmt->execute([':id' => $assetId]);
-$images = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$images = $asset['images'] ?? [];
 
-$fileSizeMB = round(filesize("../" . $asset['file_path']) / 1048576, 1);
+$fileSizeMB = is_file("../" . $asset['file_path']) ? round(filesize("../" . $asset['file_path']) / 1048576, 1) : 0;
 $extension = strtoupper(pathinfo($asset['file_path'], PATHINFO_EXTENSION));
 $createdAt = date("Y-m-d H:i", strtotime($asset['created_at']));
 $returnTo = 'assets';
 if (isset($_GET['from']) && in_array($_GET['from'], ['dashboard', 'assets'])) {
     $returnTo = $_GET['from'];
 }
+?>
+
 
 ?>
 <!DOCTYPE html>
@@ -109,7 +107,7 @@ if (isset($_GET['from']) && in_array($_GET['from'], ['dashboard', 'assets'])) {
 
 
         <?php if ($isOwner || $isAdmin): ?>
-            <div class="asset-actions">
+            <div class="asset-actions" style="display:inline;">
                 <a href="edit_asset.php?id=<?= $assetId ?>&from=<?= htmlspecialchars($returnTo) ?>" class="action-btn">Edit</a>
                 <form method="POST" action="delete_asset.php" onsubmit="return confirm('Are you sure you want to delete this asset?');" style="display:inline;">
                     <input type="hidden" name="id" value="<?= $assetId ?>">

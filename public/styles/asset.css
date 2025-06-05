@@ -110,6 +110,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    margin-left: 20px;
 }
 
 .asset-details {

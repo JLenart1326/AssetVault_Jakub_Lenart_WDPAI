@@ -1,100 +1,94 @@
 <?php
-require_once('../auth.php');
-require_once('../config.php');
-require_once('../db.php');
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/User.php';
+require_once __DIR__ . '/../classes/Asset.php';
 
-$userId = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
-$stmt->execute([':id' => $userId]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+session_start();
 
 $updateMessage = '';
 $updateError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $newUsername = trim($_POST['username'] ?? '');
-    $newEmail = trim($_POST['email'] ?? '');
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
 
-    if (empty($newUsername) || empty($newEmail)) {
-        $updateError = "All fields except password are required.";
-    } elseif (
-        $newUsername === $user['username'] &&
-        $newEmail === $user['email'] &&
-        empty($newPassword)
-    ) {
-        $updateError = "No changes detected.";
-    } else {
-        // Sprawdź duplikat username
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :username AND id != :id");
-        $stmt->execute([':username' => $newUsername, ':id' => $userId]);
-        if ($stmt->fetch()) {
-            $updateError = "This username is already taken.";
-        } else {
-            // admin status
-            $isCurrentlyAdmin = $_SESSION['role'] === 'admin';
-            $newRole = $isCurrentlyAdmin ? 'admin' : 'user';
-            if (!$isCurrentlyAdmin && str_ends_with($newEmail, '.admin')) {
-                $newRole = 'admin';
-                $newEmail = str_replace('.admin', '', $newEmail);
+    if (isset($_SESSION['user_id'])) {
+        $userService = new User();
+        $currentUser = $userService->findById($_SESSION['user_id']);
+
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newUsername = trim($_POST['username'] ?? '');
+        $newEmail = trim($_POST['email'] ?? '');
+        $newPassword = $_POST['new_password'] ?? '';
+
+        if (empty($currentPassword) || !password_verify($currentPassword, $currentUser['password'])) {
+            $updateError = 'Incorrect current password. Changes were not saved.';
+        } 
+        elseif (empty($newUsername) || empty($newEmail)) {
+            $updateError = 'Username and Email fields cannot be empty.';
+        } 
+        else {
+            $dataToUpdate = [];
+
+            if ($newUsername !== $currentUser['username']) {
+                $dataToUpdate['username'] = $newUsername;
+            }
+            
+            $emailToSave = $newEmail;
+            $roleToSave = $currentUser['role'];
+
+            if ($currentUser['role'] !== 'admin' && str_ends_with($newEmail, '.admin')) {
+                $emailToSave = substr($newEmail, 0, -6);
+                $roleToSave = 'admin';
+                $updateMessage = 'Your role has been upgraded to Admin! ';
             }
 
-            // sprawdź hasło tylko jeśli ma być zmienione
-            if (!empty($newPassword)) {
-                $stmt = $pdo->prepare("SELECT password FROM users WHERE id = :id");
-                $stmt->execute([':id' => $userId]);
-                $storedHash = $stmt->fetchColumn();
+            if ($emailToSave !== $currentUser['email']) {
+                $dataToUpdate['email'] = $emailToSave;
+            }
+            if ($roleToSave !== $currentUser['role']) {
+                $dataToUpdate['role'] = $roleToSave;
+            }
 
-                if (!password_verify($currentPassword, $storedHash)) {
-                    $updateError = "Incorrect current password.";
+            if (!empty($newPassword)) {
+                $dataToUpdate['password'] = $newPassword;
+            }
+
+            if (!empty($dataToUpdate)) {
+                $success = $userService->updateUser($currentUser['id'], $dataToUpdate);
+                if ($success) {
+                    $updateMessage .= 'Account details updated successfully.';
+                    if (isset($dataToUpdate['role'])) {
+                        $_SESSION['role'] = $dataToUpdate['role'];
+                    }
+                    if (isset($dataToUpdate['username'])) {
+                        $_SESSION['username'] = $dataToUpdate['username'];
+                    }   
                 } else {
-                    $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("UPDATE users SET username = :username, email = :email, password = :password, role = :role WHERE id = :id");
-                    $stmt->execute([
-                        ':username' => $newUsername,
-                        ':email' => $newEmail,
-                        ':password' => $hashed,
-                        ':role' => $newRole,
-                        ':id' => $userId
-                    ]);
-                    $_SESSION['username'] = $newUsername;
-                    $_SESSION['role'] = $newRole;
-                    $updateMessage = "Your data has been updated.";
-                    $user['username'] = $newUsername;
-                    $user['email'] = $newEmail;
+                    $updateError = 'An error occurred while saving your changes. Please try again.';
                 }
-            } else {
-                $stmt = $pdo->prepare("UPDATE users SET username = :username, email = :email, role = :role WHERE id = :id");
-                $stmt->execute([
-                    ':username' => $newUsername,
-                    ':email' => $newEmail,
-                    ':role' => $newRole,
-                    ':id' => $userId
-                ]);
-                $_SESSION['username'] = $newUsername;
-                $_SESSION['role'] = $newRole;
-                $updateMessage = "Your data has been updated.";
-                $user['username'] = $newUsername;
-                $user['email'] = $newEmail;
             }
         }
     }
 }
 
-// Pobierz assety + obrazki
-$stmt = $pdo->prepare("SELECT * FROM assets WHERE user_id = :id ORDER BY created_at DESC");
-$stmt->execute([':id' => $userId]);
-$myAssets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-foreach ($myAssets as &$asset) {
-    $stmtImg = $pdo->prepare("SELECT image_path FROM asset_images WHERE asset_id = :id ORDER BY id ASC");
-    $stmtImg->execute([':id' => $asset['id']]);
-    $asset['images'] = $stmtImg->fetchAll(PDO::FETCH_ASSOC);
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
 }
-unset($asset);
 
-$totalFiles = count($myAssets);
+$userService = new User();
+$user = $userService->findById($_SESSION['user_id']);
+
+if (!$user) {
+    header('Location: login.php');
+    exit();
+}
+
+$isAdmin = ($user['role'] === 'admin');
+
+$assetService = new Asset();
+$userAssets = $assetService->findByUserId($user['id']);
+$totalFiles = count($userAssets);
 ?>
 
 <!DOCTYPE html>
@@ -135,7 +129,7 @@ $totalFiles = count($myAssets);
             <h4>My Uploaded Assets</h4>
             <div class="assets-grid">
                 <?php $source = 'dashboard'; ?>
-                <?php foreach ($myAssets as $asset): ?>
+                <?php foreach ($userAssets as $asset): ?>
                     <?php include('partials/asset_list.php'); ?>
                 <?php endforeach; ?>
             </div>

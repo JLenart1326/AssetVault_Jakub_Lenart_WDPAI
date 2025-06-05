@@ -1,9 +1,7 @@
 <?php
 session_start();
-require_once('../config.php');
-require_once('../db.php');
+require_once('../classes/User.php');
 
-// Jeśli użytkownik już jest zalogowany — przekieruj do dashboardu
 if (isset($_SESSION['user_id'])) {
     header('Location: dashboard.php');
     exit();
@@ -13,7 +11,7 @@ $message = '';
 $messageType = '';
 
 if (isset($_GET['registered']) && $_GET['registered'] == 1) {
-    $message = 'Registration completed successfully. You can now log in';
+    $message = 'Registration completed successfully. You can now log in.';
     $messageType = 'success';
 }
 
@@ -22,11 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (!empty($email) && !empty($password)) {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-        $stmt->execute([':email' => $email]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $userObj = new User();
+        $user = $userObj->login($email, $password);
 
-        if ($user && password_verify($password, $user['password'])) {
+        if ($user) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
@@ -35,39 +32,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         } else {
             $message = 'Invalid email or password.';
+            $messageType = 'error';
         }
     } else {
         $message = 'Please fill in all fields.';
+        $messageType = 'error';
     }
 }
 ?>
 
+
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Logowanie - AssetVault</title>
+    <title>Login - AssetVault</title>
     <link rel="stylesheet" href="../styles/auth.css">
 </head>
 <body>
 
 <div class="auth-wrapper">
 
-    <!-- Lewa sekcja (tylko na desktopie) -->
     <div class="auth-left">
         <img src="../images/logo-white.png" alt="AssetVault Logo" style="width: 80px; margin-bottom: 20px;">
         <h1>Welcome to AssetVault</h1>
         <p>Manage your digital assets securely and efficiently with our platform.</p>
     </div>
 
-    <!-- Prawa sekcja -->
     <div class="auth-right">
-        
         <div class="logo-section">
             <img src="../images/logo-black.png" alt="Logo">
             <h1>AssetVault</h1>
         </div>
-
 
         <div class="auth-container">
             <h2>Welcome back</h2>
@@ -89,9 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p>Don't have an account? <a href="register.php">Sign up</a></p>
             </div>
         </div>
-
     </div>
-
 </div>
 
 </body>

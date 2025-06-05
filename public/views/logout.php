@@ -1,12 +1,10 @@
 <?php
+require_once('../classes/User.php');
 session_start();
 
-// Usunięcie wszystkich danych z sesji
-session_unset();
+$user = new User();
+$user->logout();
 
-// Zniszczenie sesji
-session_destroy();
-
-// Przekierowanie do strony logowania
 header('Location: login.php');
 exit();
+?>
