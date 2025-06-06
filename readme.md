@@ -1,196 +1,288 @@
-# AssetVault
+# AssetVault – Dokumentacja techniczna
 
-**Autor:** Jakub Lenart  
-**Rok akademicki:** 2024/2025
+## Spis treści
+
+1. [Opis projektu](#opis-projektu)
+2. [Technologie](#technologie)
+3. [Struktura katalogów](#struktura-katalogów)
+4. [Funkcjonalności](#funkcjonalności)
+5. [Instalacja i uruchomienie](#instalacja-i-uruchomienie)
+6. [Konfiguracja bazy danych](#konfiguracja-bazy-danych)
+7. [Modele danych](#modele-danych)
+8. [Uprawnienia i role](#uprawnienia-i-role)
+9. [Widoki i UI](#widoki-i-ui)
+10. [Przykładowe dane](#przykładowe-dane)
+11. [Zarządzanie assetami](#zarządzanie-assetami)
+12. [Bezpieczeństwo](#bezpieczeństwo)
+13. [Autorzy](#autorzy)
 
 ---
 
 ## Opis projektu
 
-**AssetVault** to aplikacja webowa służąca do zarządzania cyfrowymi assetami (np. plikami graficznymi, dźwiękowymi, 3D itp.) przez wielu użytkowników, z podziałem na role (user/admin), funkcją przesyłania plików, ich pobierania, edycji, filtrowania oraz zarządzania własnym kontem. System zapewnia podstawowe bezpieczeństwo, czytelną szatę graficzną oraz jest przystosowany do uruchamiania w środowisku Docker.
-
----
-
-## Spis treści
-
-1. [Technologie](#technologie)
-2. [Wymagania systemowe](#wymagania-systemowe)
-3. [Struktura katalogów](#struktura-katalogów)
-4. [Sposób uruchomienia w Dockerze](#sposób-uruchomienia-w-dockerze)
-5. [Funkcjonalności](#funkcjonalności)
-6. [Role i uprawnienia użytkowników](#role-i-uprawnienia-użytkowników)
-7. [Opis widoków (stron)](#opis-widoków-stron)
-8. [Struktura bazy danych (opis)](#struktura-bazy-danych-opis)
-9. [Bezpieczeństwo](#bezpieczeństwo)
-10. [Możliwości rozbudowy](#możliwości-rozbudowy)
-11. [Informacje dodatkowe](#informacje-dodatkowe)
+**AssetVault** to aplikacja webowa napisana w PHP, służąca do zarządzania, przeglądania i udostępniania zasobów cyfrowych (assetów) takich jak pliki graficzne, modele 3D oraz ich miniatury. Umożliwia rejestrację użytkowników, logowanie, podział ról (admin, user), upload i pobieranie plików oraz zaawansowane zarządzanie assetami i uprawnieniami.
 
 ---
 
 ## Technologie
 
-- **PHP** (logika serwera)
-- **MySQL** (baza danych)
-- **HTML5**, **CSS3** (szata graficzna, responsywność)
-- **JavaScript** (obsługa interfejsu użytkownika)
-- **Docker** (uruchamianie aplikacji w kontenerach)
-- **PDO** (komunikacja PHP z bazą)
-- Brak frameworków PHP i JS
-
----
-
-## Wymagania systemowe
-
-- Docker + Docker Compose (najwygodniejsza, rekomendowana instalacja)
-- Alternatywnie: Apache/Nginx, PHP 8+, MySQL 8+
+* **Backend:** PHP 8.x+
+* **Frontend:** HTML5, CSS3 (dedykowane arkusze dla każdego widoku)
+* **Baza danych:** PostgreSQL (lub kompatybilny system SQL)
+* **Przechowywanie plików:** system plików (folder `uploads`)
+* **Obsługa miniatur:** folder `images`
+* **Autoryzacja:** własny system ról i uprawnień
 
 ---
 
 ## Struktura katalogów
+
+```
 public/
-    auth.php
-    config.php
-    db.php
-    index.php
-    images/
-        ...
-    scripts/
-        main.js
-    styles/
-        *.css
-    uploads/
-        ... (przesłane pliki użytkowników)
-    views/
-        asset.php
-        assets.php
-        dashboard.php
-        delete_asset.php
-        edit_asset.php
-        login.php
-        logout.php
-        register.php
-        upload.php
-    partials/
-        asset_list.php
-
-
----
-
-## Sposób uruchomienia w Dockerze
-
-1. **Klonuj repozytorium lub rozpakuj paczkę projektu:**
-    ```bash
-    git clone <adres_repozytorium> lub rozpakuj archiwum .zip/.7z
-    ```
-2. **Upewnij się, że masz zainstalowanego Dockera i Docker Compose.**
-
-3. **W głównym katalogu projektu uruchom:**
-    ```bash
-    docker compose up --build
-    ```
-    lub (w zależności od konfiguracji)
-    ```bash
-    docker-compose up --build
-    ```
-4. **Aplikacja będzie dostępna lokalnie np. pod adresem:**  
-   [http://localhost:8080](http://localhost:8080)  
-   (Port może być inny, zależnie od pliku `docker-compose.yml`)
-
-5. **Baza danych oraz wszystkie zależności uruchamiane są automatycznie w osobnych kontenerach.**
+│
+├── auth.php             # logika uwierzytelniania
+├── config.php           # konfiguracja bazy danych i aplikacji
+├── index.php            # punkt wejścia aplikacji
+│
+├── classes/             # klasy PHP
+│   ├── Asset.php
+│   ├── Database.php
+│   └── User.php
+│
+├── images/              # obrazy systemowe i miniatury assetów
+│   ├── logo-black.png
+│   ├── default-thumb.png
+│   └── thumb_xxx.jpg/png
+│
+├── styles/              # arkusze CSS
+│   ├── asset.css
+│   ├── assets.css
+│   ├── asset_list.css
+│   ├── auth.css
+│   ├── dashboard.css
+│   └── upload_edit.css
+│
+├── uploads/             # przesyłane pliki użytkowników (assetów)
+│   ├── *.png, *.jpg, *.fbx, *.blend
+│
+└── views/               # widoki aplikacji (MVC)
+    ├── asset.php
+    ├── assets.php
+    ├── dashboard.php
+    ├── delete_asset.php
+    ├── edit_asset.php
+    ├── login.php
+    ├── logout.php
+    ├── register.php
+    ├── upload.php
+    └── partials/
+        └── asset_list.php
+```
 
 ---
 
 ## Funkcjonalności
 
-- **Rejestracja, logowanie, wylogowanie**
-- Zarządzanie kontem użytkownika (zmiana danych, hasła)
-- Wysyłanie assetów (plików) przez użytkowników
-- Pobieranie i przeglądanie assetów
-- Filtrowanie assetów po typie (grafika, audio, 3D, itp.)
-- Przeglądanie własnych plików
-- Edycja i usuwanie własnych assetów (admin: wszystkich)
-- Rola **admin** – dostęp do pełnej administracji plikami i użytkownikami
-- Wyświetlanie miniatur plików graficznych
-- Panel użytkownika z podstawowymi statystykami
-- Obsługa sesji, ról, prostych uprawnień
+* Rejestracja i logowanie użytkowników
+* Przypisywanie ról: admin/user
+* Przeglądanie listy assetów z miniaturkami i filtrowaniem po typach
+* Przesyłanie plików (upload assetów, upload miniaturek)
+* Podgląd szczegółów assetu
+* Edycja i usuwanie assetów (zależnie od uprawnień)
+* Podgląd i zarządzanie własnymi assetami
+* Pobieranie assetów
+* Dedykowane widoki dla admina (pełne uprawnienia)
+* Responsywny, rozbudowany interfejs z dedykowanymi stylami CSS
+* Baza danych z czytelną strukturą relacyjną
 
 ---
 
-## Role i uprawnienia użytkowników
+## Instalacja i uruchomienie
 
-- **user** – zwykły użytkownik (może zarządzać tylko własnymi plikami)
-- **admin** – może edytować i usuwać wszystkie assety (nie tylko własne), dodatkowe uprawnienia do zarządzania użytkownikami
-- Przypisanie roli na podstawie adresu e-mail z końcówką `.admin` (np. `jan.kowalski@wp.pl.admin` podczas rejestracji tworzy konto admina)
+Aplikacja działa w środowisku **Docker**. Do uruchomienia projektu wymagane są:
+
+* [Docker](https://www.docker.com/products/docker-desktop)
+* [Docker Compose](https://docs.docker.com/compose/)
+
+### Krok 1: Sklonuj repozytorium
+
+```bash
+git clone <adres_repozytorium>
+cd <folder_projektu>
+```
+
+### Krok 2: Skonfiguruj pliki środowiskowe
+
+Przed pierwszym uruchomieniem możesz edytować plik `.env` (jeśli występuje) lub sprawdzić/ustawić zmienne środowiskowe w plikach `docker-compose.yml` i `config.php`, takie jak:
+
+* nazwa bazy danych
+* użytkownik i hasło do bazy
+* porty serwera WWW i bazy danych
+
+### Krok 3: Uruchom kontenery Docker
+
+W głównym katalogu projektu uruchom polecenie:
+
+```bash
+docker-compose up --build
+```
+
+Spowoduje to:
+
+* Zbudowanie obrazu PHP z Twoją aplikacją (serwer www, np. Apache)
+* Utworzenie kontenera z bazą danych PostgreSQL
+* (Opcjonalnie) Utworzenie kontenera narzędziowego do migracji bazy lub adminer/phpmyadmin
+
+### Krok 4: Inicjalizacja bazy danych
+
+Zainicjaluzj baze danych kodem z pliku ```init.sql```
+
+```bash
+docker exec -i <nazwa_kontenera_postgres> psql -U <db_user> -d <db_name> < /docker-entrypoint-initdb.d/init.sql
+```
+
+### Krok 5: Wejdź na aplikację
+
+Po poprawnym starcie kontenerów aplikacja będzie dostępna pod adresem:
+
+```
+http://localhost:<port_www>
+```
+
+Domyślny port serwera www to najczęściej `8080` lub `8000` (sprawdź w `docker-compose.yml`).
+
+### Krok 6: Przesyłanie i zapisywanie plików
+
+Upewnij się, że katalogi `public/uploads` oraz `public/images` mają nadane odpowiednie prawa zapisu (w środku kontenera – Dockerfile powinien to ustawiać automatycznie).
 
 ---
 
-## Opis widoków (stron)
+## Konfiguracja bazy danych
 
-- **Strona główna** (`index.php`) — przekierowanie na odpowiedni widok w zależności od sesji użytkownika
-- **Rejestracja** (`views/register.php`) — formularz zakładania konta, walidacja danych, obsługa ról
-- **Logowanie** (`views/login.php`) — formularz logowania, obsługa sesji
-- **Wylogowanie** (`views/logout.php`) — zakończenie sesji
-- **Dashboard** (`views/dashboard.php`) — panel użytkownika, zarządzanie kontem i swoimi assetami
-- **Lista assetów** (`views/assets.php`) — przeglądanie i filtrowanie wszystkich plików
-- **Widok pojedynczego assetu** (`views/asset.php`) — szczegóły pliku, możliwość pobrania, edycji/usunięcia (jeśli użytkownik ma uprawnienia)
-- **Edycja assetu** (`views/edit_asset.php`) — formularz edycji pliku
-- **Upload assetu** (`views/upload.php`) — przesyłanie nowych plików
-- **Usuwanie assetu** (`views/delete_asset.php`) — potwierdzenie i usuwanie pliku
+* Nazwy tabel: `users`, `assets`, `asset_images`, `roles`
+* Relacje:
+
+  * `assets.user_id` → `users.id`
+  * `asset_images.asset_id` → `assets.id`
+* Rola użytkownika określana przez pole `role` w tabeli `users` (`admin` / `user`)
+* Miniatury powiązane z assetami przez tabelę `asset_images`
 
 ---
 
-## Struktura bazy danych (opis)
+## Modele danych
 
-Projekt zakłada co najmniej dwie tabele:
+### Tabela `users`
 
-- **users**
-    - id (int, PK)
-    - username (varchar, unikalny)
-    - email (varchar, unikalny)
-    - password (varchar, hash)
-    - role (enum: user, admin)
+| Kolumna  | Typ                | Opis                              |
+| -------- | ------------------ | --------------------------------- |
+| id       | SERIAL PRIMARY KEY | Unikalny identyfikator            |
+| username | VARCHAR(50)        | Nazwa użytkownika                 |
+| email    | VARCHAR(100)       | Email użytkownika                 |
+| password | VARCHAR(255)       | Hasło (zahashowane)               |
+| role     | VARCHAR(10)        | Rola użytkownika (`admin`/`user`) |
 
-- **assets**
-    - id (int, PK)
-    - filename (varchar)
-    - type (varchar, np. png, jpg, mp3, fbx, blend)
-    - uploaded_by (FK -> users.id)
-    - description (text)
-    - created_at (timestamp)
-    - inne kolumny wg potrzeb (np. ścieżka, miniaturka, rozmiar)
+### Tabela `assets`
 
-**Komunikacja z bazą przez PDO, bez wyzwalaczy, widoków czy transakcji.**
+| Kolumna     | Typ                | Opis                                |
+| ----------- | ------------------ | ----------------------------------- |
+| id          | SERIAL PRIMARY KEY | Unikalny identyfikator assetu       |
+| user\_id    | INTEGER            | ID właściciela assetu               |
+| name        | VARCHAR(100)       | Nazwa assetu                        |
+| description | TEXT               | Opis assetu                         |
+| type        | VARCHAR(50)        | Typ assetu (np. Tekstura, Model 3D) |
+| file\_path  | VARCHAR(255)       | Ścieżka do pliku                    |
+| created\_at | TIMESTAMP          | Data dodania                        |
+
+### Tabela `asset_images`
+
+| Kolumna     | Typ                | Opis                           |
+| ----------- | ------------------ | ------------------------------ |
+| id          | SERIAL PRIMARY KEY | Unikalny identyfikator obrazka |
+| asset\_id   | INTEGER            | Powiązanie z assetem           |
+| image\_path | VARCHAR(255)       | Ścieżka do pliku miniatury     |
+
+### Tabela `roles`
+
+| Kolumna | Typ                | Opis                         |
+| ------- | ------------------ | ---------------------------- |
+| id      | SERIAL PRIMARY KEY | Unikalny identyfikator roli  |
+| name    | VARCHAR(50)        | Nazwa roli (`admin`, `user`) |
+
+---
+
+## Uprawnienia i role
+
+* **admin**: pełne uprawnienia do zarządzania wszystkimi assetami i użytkownikami
+* **user**: uprawnienia ograniczone do własnych assetów
+
+W aplikacji role są przechowywane zarówno w tabeli `roles`, jak i jako pole tekstowe w `users.role`.
+
+---
+
+## Widoki i UI
+
+Każdy widok jest osobnym plikiem PHP w folderze `views/`:
+
+* `assets.php` – lista wszystkich assetów, filtrowanie, pobieranie
+* `asset.php` – podgląd szczegółów assetu, karuzela miniatur, info o autorze i dacie
+* `dashboard.php` – panel użytkownika, lista własnych assetów, edycja profilu
+* `edit_asset.php` – edycja assetu (tylko właściciel/admin)
+* `upload.php` – przesyłanie nowego assetu
+* `delete_asset.php` – potwierdzenie usunięcia assetu
+* `login.php` / `register.php` / `logout.php` – autoryzacja i rejestracja
+* `partials/asset_list.php` – komponent do renderowania listy assetów
+
+---
+
+## Przykładowe dane
+
+Przykładowe wypełnienie bazy (użytkownicy, assety, miniatury) znajduje się na screenach i w przesłanym SQL-u.
+
+**Użytkownicy:**
+
+* `admin` (rola: admin)
+* `Oliwia Zając` (rola: admin)
+* ...
+* `Paweł`, `Michał`, `Krzysiek` (rola: user)
+
+**Assety:**
+
+* `Test` (Tekstura)
+* `Doll2` (Model 3D)
+* `Dragon 3D Model 4` (Tekstura)
+* `Anime Doll` (Model 3D)
+* `Water` (Tekstura)
+
+**Miniatury assetów**:
+Powiązane z assetami przez `asset_images`.
+
+---
+
+## Zarządzanie assetami
+
+* **Dodawanie:** Użytkownik może przesłać asset oraz do 3 miniaturek podglądu.
+* **Edycja:** Właściciel assetu oraz admin mogą edytować asset oraz miniaturki.
+* **Usuwanie:** Usunięcie assetu skutkuje usunięciem wszystkich powiązanych miniaturek.
+* **Podgląd:** Szczegóły, lista miniaturek w formie karuzeli, informacje o autorze i dacie dodania.
+* **Pobieranie:** Assety można pobrać bezpośrednio z widoku szczegółów lub listy.
 
 ---
 
 ## Bezpieczeństwo
 
-- Hasła przechowywane jako hashe (password_hash)
-- Użycie prepared statements (PDO) do zapytań SQL — ochrona przed SQL Injection
-- Walidacja pól formularzy po stronie serwera
-- Podstawowa ochrona przed XSS (filtrowanie i esc. danych przy wyświetlaniu)
-- Brak zaawansowanej ochrony CSRF (do wdrożenia)
-- Pliki uploadowane są sprawdzane pod kątem typu
+* Hasła są przechowywane w postaci haszowanej.
+* Unikalne nazwy użytkownika i email.
+* Walidacja uprawnień przed edycją/usuwaniem assetów.
+* Ograniczenie uprawnień do panelu admina.
+* Spójność i integralność relacji dzięki kluczom obcym i ON DELETE CASCADE.
+* Ochrona przed SQL Injection (Prepared Statements)
+* Ochrona przed Cross-Site Scripting (XSS)
 
 ---
 
-## Możliwości rozbudowy
+## Autorzy
 
-- Wprowadzenie OOP w backendzie (PHP)
-- Zmiana bazy na PostgreSQL
-- Implementacja Fetch API (AJAX) — asynchroniczna obsługa przesyłania/pobierania danych
-- Dodanie widoków, funkcji i wyzwalaczy w bazie danych
-- Lepsze zarządzanie uprawnieniami (np. osobny panel admina)
-- Dodanie testów jednostkowych
-- Pełna internacjonalizacja (wielojęzyczność)
-- Refaktoryzacja do czystszej architektury (MVC, DRY)
-- Zautomatyzowany eksport/import bazy
+Projekt przygotowany przez Jakub Lenart WIIT 3
 
 ---
-
-## Kontakt
-
-**Autor:** Jakub Lenart  
-e-mail: jlenart1326@gmail.com 
-
 
